@@ -1,0 +1,221 @@
+---
+title: "Peak Heart rate of a human Related with Cholesterol Level and Sex?"
+author: "Nafis Ahmed Munim"
+date: "May 2 , 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.height=2, fig.width = 6)
+  opts_chunk$set(fig.align='center')
+library(tidyverse)
+library(skimr)
+```
+
+## Abstract
+
+We investigate whether the Peak Heart Rate of a HUMAN BEING is related with the Cholesterol Level of a Human Being and whether the Peak Heart Rate differs between Males and Females. We also explore the difference in Peak Heart Rate depending on the Sex of a Human Being. A total Observation in 303 persons from Cleveland, Hungary , Switzlerland, and the VA long Beach were given in the Dataset and the dataset was extracted from https://archive.ics.uci.edu/ml/datasets/Heart+Disease . We found that the people who has increased Cholesterol tend to achieve more Heart Rate than people who has less Cholestorel level excluding some special cases. Females who have more cholesterol level tend to have increased Heart rate than Males in general excluding some special cases.  
+\newpage
+
+## Background and Significance
+
+
+Does having an increased Cholesterol Level which is Triglyceride and HDL Cholesterol affects the Peak Heart rate of a person regardless which gender the person belongs to?  Moreover, Does Peak Heart Rate in Male and Female who tend to have the same Cholesterol level affects the Peak Heart Rate of a Human Being? As Cardio Vascular Disease is a very rising question to the world right now. Doctors and Medical Scientists try to find a possible relation between the Cholesterol Level and Gender with the Peak Heart rate which eventually is related to Cardio Vascular Disease and Heart Attack.
+
+However, Prior Researches find the affect of Cholesterol in Chronic Heart Failure and Heart Failure. Mehdi H. Shishehbor, DO1, Byron J. Hoogwerf, MD2 and Michael S. Lauer, MD3(2004 April) found that , "HRR is associated with triglyceride–to–HDL cholesterol ratio and identifies patients with insulin resistance who are at increased risk of death." 
+J Am Coll Cardiol at 2003 Dec worked with 303 unselected patients to find the relation between Cholesterol and Coronary Heart Disease, Chronic Heart Failure. A study conducted in April 2020 by "Philipp Birnbaumer,1 Heimo Traninger,2 Andrea Borenich,3 Markus Falgenhauer,4 Robert Modre-Osprian,4 Hanns Harpf,2 and Peter Hofmann1,*" shows that "Changes in HRPC's were affected by sex and performance, where women generally and subjects with higher performance presented less atypical HRPC's even at older age." 
+In this Paper, we investigate the relation between the Cholesterol and Peak Heart Rate and Gender using bootstrapping and confidence interval. We also investigate whether there is a relation in the peak heart rate achieved and the gender. 
+
+
+
+## Data
+
+```{r, echo=FALSE}
+Heartanalysis <- read.csv("/Users/nafisahmedmunim/Desktop/STAT255/heart.csv")
+
+# The data has been taekn from Kaggle.com and the source of the data is https://archive.ics.uci.edu/ml/datasets/Heart+Disease 
+# The link of the data is given here : https://www.kaggle.com/nareshbhat/health-care-data-set-on-heart-attack-possibility
+```
+
+```{r}
+###sex 0 Female and Sex 1 means Male so this is for changing the 1 to male and 0 to female 
+Heartanalysis$sex[Heartanalysis$sex==0] <- c("Female")
+Heartanalysis$sex[Heartanalysis$sex==1] <- c("Male")
+Heartanalysis$sex <- factor(Heartanalysis$sex)
+
+```
+
+Using Kaggle.com, we obtained data on 303 Patients, who were observed to find out any heart attack risk. We considered the Quantitative varibales Cholesterol Level mg/dl and Peak Heart rate. We also considered the categorical variable Sex. We had data for all the observations and no values were missing in the data. The number of Males in the observations were 207 and the number of female was 96. The Table below shows the Mean and the Standard Deviation of the two quantitative Variables Peak Heart rate and Cholesterol Level. 
+
+```{r}
+# use only sex, Chol (cholesterol Level in mg/dl) , thalach( peak Heart rate achieved)
+Heartanalysis <-  Heartanalysis %>% select(sex, chol, thalachh)
+skim(Heartanalysis)
+```
+
+
+```{r}
+library(knitr)
+Table <- Heartanalysis %>% group_by(sex) %>% 
+  summarize(Mean_Cholesterol=mean(chol), 
+            StDev_Cholesterol=sd(chol), 
+            Mean_Peakheartrate = mean(thalachh), 
+            StDev_Peakheartrate = sd(thalachh)) 
+          
+kable(Table, caption = "Summary Statistics")
+```
+
+Figures 1 and 2 display density plots of Peak Heart Rate , while Figure 3 shows a scatterplot of peak Heart rate score against Cholesterol, with regression lines included for each Sex. 
+
+```{r, fig.cap="Distribution of Peak Heart rate"}
+ggplot(data=Heartanalysis, aes(x=thalachh, fill=sex, color=sex)) + 
+  geom_density(alpha=0.2) + xlab("Peak Heart Rate")+ ylab("Frequency") + ggtitle("Peak Heart Rate of the Data")
+```
+
+```{r, fig.cap="Distribution of CHOLESTEROL LEVELS "}
+ggplot(data=Heartanalysis, aes(x=chol, fill=sex, color=sex)) + 
+  geom_density(alpha=0.2) + ggtitle("Cholesterol levels") + xlab("Cholesterol mg/dl") + ylab("Frequency")
+```
+
+```{r, fig.cap="Relationship between Peak Heart rate and Cholesterol for each Sex"}
+ggplot(data=Heartanalysis, aes(y=thalachh, x=chol, color=sex)) + geom_point() + 
+ xlab("Cholesterol Level") + ylab("Peak Heart Rate") + ggtitle("Relationship between Peak Heart rate, Sex and Cholesterol level") + stat_smooth(method="lm", se=FALSE)
+```
+
+
+We see that that Cholesterol Levels for Female are slightly Higher than the Cholesterol level of Men. Men In general tends to have less cholesterol level than Females on an average. Moreover the Peak Heart Rate of males are also slightly Higher than the Peak rate of Females. We see that the lines in the third graph is slightly sloped. We can see that besides some variabilities the peak Heart rate in female increases a very little as the Cholesterol Level Increases. And on the other hand it seems that the as cholesterol level increases the Peak Heart Rate of Male decreases. 
+Moreover we can see that there are some outlier in the graph which is some females with very high Cholesterol level which seems a quite bit questionable her. But the amount of outliers is not that much to worry about and we shouldn't be much concerned with our results. 
+
+## Model  
+
+We first fit a model relating Peak Heart rate, Cholesterol Level and Sex, without accounting for interaction between Cholesterol and sex. Table 2 gives the model coefficients. 
+
+```{r}
+M1 <- lm(data=Heartanalysis, thalachh ~ chol + sex)
+kable(summary(M1)$coefficients, caption="Table of Model Coefficients")
+```
+
+The estimated regression equation is 
+\[
+\widehat{\text{Peak Heart Rate}} = 153.37  - 0.00857\times\text{Cholesterol} - 2.352 \times \text{Sex Male}
+\]
+It doesn't make sense to interpret the intercept, since this would represent the expected Peak Heart Rate for a person with 0 cholesterol level which is impossible to happen as every human being has a cholesterol level. We estimate that a person's Peak Heart rate is going to decrease by 0.00857 for per unit increase in cholesterol level , assuming that the sex is is same. According to this model a female is expected to have 2.352 unit more peak Heart Rate than men in general when Cholesterol level is same or held Constant..
+The $R^2$ was 0.0023 and that indicates that 2.3% of the variability peak Heart rate of Heart patients is explained by the model including Cholesterol level and sex.
+
+```{r}
+M2 <- lm(data=Heartanalysis, thalachh ~ chol * sex)
+
+kable(summary(M2)$coefficients, caption="Table of Model Coefficients")
+```
+The estimated regression equation is 
+\[
+\widehat{\text{Peak Heart Rate}} = 148.621  + 0.00957\times\text{Cholesterol} + 7.03021 \times \text{Sex Male} - 0.0375403\times \text{Sex Male}\times\text{Cholesterol}
+\]
+
+For Females, this simplifies to $\widehat{\text{Peak Heart Rate}} =148.621 + 0.00957\times\text{Cholesterol}$.  
+
+Thus we estimate that The Peak Heart rate of Females increase by about 0.00957 unit for each additional increase in Cholesterol Level, compared to an estimated average decrease of $0.00957-0.0375403= -0.0279703$ unit in Peak Heart Rate for each unit increase of Cholesterol in Males. So that says How the Cholesterol level increase in Male Decrease the Peak Heart rate while that Increases in Females.
+
+Once again, we refrain from interpreting the intercepts of these equations, since these would theoretically pertain to Peak Heart Rate to 0, which don't make sense in practical. 
+
+The value of $R^2$ was 0.004031. This indicates that approximately 4.03% of the variability in peak Heart rate is explained by the model including Cholesterol level and sex. 
+
+Although we observe only a small increase in $R^2$, when the interaction terms are added, we will use the model with interaction. Moreover, in the scatterplot which is the figure 3 we can see that the two slopes are intersecting at some point which evidents that there is be some relationship between cholesterol and peak heart rate. if there were no relationship the lines woud have been parallel. Also Intuitively, it makes sense that Peak Heart of a Human being changes according to cholesterol as it is related to cardiovascular disease and it also is changes according to the sex as Males and Females have different Metabolism and some Differences biologically. Therefore, we will use the model with interactions in our analysis.
+
+## Inference
+ 
+In this section, we use the sample of 303 sample of Humans to draw Borader conclusions about all Human Beings. First, we calculate a confidence interval for the expected increase in Peak Heart Rate for each additional increase in the Cholesterol Level for Males. Then we compare the expected Peak Heart rate for a Male and female who has the Same Cholesterol level of 250. 
+The general form of the regression equation is 
+\[
+\widehat{\text{Peak Heart Rate}} = b0  + b1\times\text{Cholesterol} + b2 \times \text{Sex Male} - b3\times \text{Sex Male}\times\text{Cholesterol}
+\]
+
+The expected change in Peak Heart rate for Males are given by $b_1 + b_3$ . We use bootstrapping to find a 95% confidence interval for this quantity, as it pertains to all Human Beings. Figure 4 display the bootstrap distribution and a 95% bootstrap percentile confidence interval. We are 95% confident that it is plausible that the Peak Heart Rate can go as low as  -0.10605 to as high 0.0502 unit, on average, for each additional unit increase in cholesterol level. It is also plausible that there is no relationship between these two as the 0 lies in the interval
+  
+
+```{r}
+b0 <- rep(NA, 10000)
+b1 <- rep(NA, 10000)
+b2 <- rep(NA, 10000)
+b3 <- rep(NA, 10000)
+
+
+for (i in 1:10000){
+BootstrapSample <- sample_n(Heartanalysis, 303, replace=TRUE) 
+M <- lm(data=BootstrapSample, thalachh~chol* sex)
+b0[i] <- M$coefficients[1]
+b1[i] <- M$coefficients[2]
+b2[i] <- M$coefficients[3]
+b3[i] <- M$coefficients[4]
+
+}
+
+HeartRateDifference <-  250*b3 + b2
+Heart_Bootstrap_Results <- data.frame(b0, b1, b2, b3,  HeartRateDifference)
+```
+
+Next, we compare expected Peak Heart Rate for Females and Males who have the same cholesterol level of 250 Mg/dl. The expected Peak Heart rate of a male who has 250 mg/dl Cholesterol Level is given by $b_0 +b_2+250(b_1+b_3) $. The expected Peak Heart rate of a Female who has 250 mg/dl Cholesterol Level is given by $b_0 + 250b_1 $. So the difference in these expected Peak Heart rate is $250b_3 + b_2$. Figure 5 gives a 95% bootstrap percentile confidence interval for this expected difference.
+
+
+
+
+```{r}
+q.025 <- quantile(Heart_Bootstrap_Results$b1+ Heart_Bootstrap_Results$b3, .025)
+q.975 <- quantile(Heart_Bootstrap_Results$b1+ Heart_Bootstrap_Results$b3, .975)
+
+```
+
+```{r ,fig.cap="Bootstrap Distribution for Increase in Peak Heart rate for Per Unit increase of Cholesterol For only when the sex is same"}
+ggplot(data=Heart_Bootstrap_Results, aes(x=b1+b3)) +  
+  geom_histogram(color="white", fill="lightblue") +
+  xlab("Per Unit Increase") + ylab("Frequency") +  ggtitle("Bootstrap Distribution for Slope") + 
+  theme(legend.position = "none") + geom_vline(xintercept=c(q.025, q.975), color="red")
+```
+
+
+```{r}
+q.025 <- quantile(Heart_Bootstrap_Results$HeartRateDifference, .025)
+q.975 <- quantile(Heart_Bootstrap_Results$HeartRateDifference, .975)
+
+```
+
+
+```{r , fig.cap="Bootstrap Distribution for Expected Difference in Peak Heart Rate between male and female who has the same Cholesterol Level of 250"}
+ggplot(data=Heart_Bootstrap_Results, aes(x=HeartRateDifference)) +  
+  geom_histogram(color="white", fill="lightblue") +
+  xlab("Expected Difference ") + ylab("Frequency") + ggtitle("Bootstrap Distribution for Expected Difference in Male and female") +
+  theme(legend.position = "none") + geom_vline(xintercept=c(q.025, q.975), color="red")
+```
+
+We are 95% confident that it is plausible that the Peak Heart Rate difference between female and male can go to as low as to -7.74574 and as up as 3.314793 Unit for those who have 250 mg/dl cholesterol Level.It is also plausible that there is no relationship between these two as the 0 lies in the interval
+
+## Discussion and Conclusions
+
+We have found evidence that for possible relation between the Peak Heart rate and the Cholesterol level in a human being. The regression lines relating peak heart rate and cholesterol had positive slope for female but negative slopes for males. The estimated decrease for male in peak heart rate was found 2.35. A confidence interval 
+shows that the difference between heart rate in male and female  can go to as low as to -7.74574 and as up as 3.314793 Unit for those who have 250 mg/dl cholesterol Level. The fact that zero lies in the confindence interval questions about the plausible relation between the sex and peak heart rate. 
+There are signs of an interaction between cholesterol level and Peak Heart level as in the regression lines it shows that the peak heart rate for females are increasing and the peak heart rate for males are decreasing as the cholesterol level goes up. 
+
+We found that the difference in the Peak heart rate between females and males is possibly as low as -7.74574 to 3.314793 as high as . We can also see that 0 lies within our interval which shows that it is possible that there might not be such relation in Peak heart rate with sex. This range makes it difficult to conclusively say that the peak heart rate whether increases or decreases for males and females who have the same cholesterol level.
+
+The fact that our model only explained 4.3% of the variability in the peak heart rate is not surprising because there are a lot of variable or stuffs which effect the heart rate of a person.The factors like body weight, age , habits, other health issues might be considered by health specialists to find the range of peak heart rate. Still this result suggests that Cholesterol level is predictive of Peak Heart rate.
+
+There are several limitations that we should be aware of. Our sample pertained to only 303 persons who were checked in a year. it is not clear that the observations taken in other area or year would be systematically different than our sample, but since we don't have a random sample of all the patients or people around the world from different regions and different time, it is possible that our results are not representing the whole population. Our study pertained only to Cholesterol levels while things like Peak Heart rate depends on a lot of other things like serum createnine, age , type of exercise the person does, type of chest pain the person have and other health conditions, which medical sectors will certainly consider when determining the peak heart rate. Although we found that Cholesterol levels have some effect in the Peak Heart rate whether increasing or decreasing the Peak heart rate in different genders. 
+ 
+Our study provides guidance to general people who have seen or observed high cholesterol level in their blood which might tend to show some cardio vascular disease in their body in future or they should be aware of their health condition according to their gender.Moreover, the interaction between age and Cholesterol and Heart rate can open doors to many future researches in the medical or pathology sector as Cardio-vascular diseases are a top concern in the health  sector of the world and our food habit is really related with the cholesterol level. 
+
+\newpage 
+
+## Bibliography
+
+Heart Rate Performance Curve Is Dependent on Age, Sex, and Performance.Philipp Birnbaumer,1 Heimo Traninger,2 Andrea Borenich,3 Markus Falgenhauer,4 Robert Modre-Osprian,4 Hanns Harpf,2 and Peter Hofmann1,* . Retrieved from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7144539/
+
+Association of Triglyceride–to–HDL Cholesterol Ratio With Heart Rate Recovery. Mehdi H. Shishehbor, DO1, Byron J. Hoogwerf, MD2 and Michael S. Lauer, MD3. Retrieved from https://care.diabetesjournals.org/content/27/4/936.short
+
+The relationship between cholesterol and survival in patients with chronic heart failure. J Am Coll Cardiol. 2003 Dec, 42 (11) 1933–1940. Journal of the American College of Cardiology. 
+
+Heart.csv . Retrieved from https://archive.ics.uci.edu/ml/datasets/Heart+Disease or https://www.kaggle.com/nareshbhat/health-care-data-set-on-heart-attack-possibility
+
+\newpage
+
+

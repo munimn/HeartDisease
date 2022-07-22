@@ -1,0 +1,233 @@
+---
+title: "Peak Heart rate of a human Related with Resting Blood Pressure and Sex?"
+author: "Nafis Ahmed Munim"
+date: "May 2 , 2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE, fig.height=2, fig.width = 6)
+  opts_chunk$set(fig.align='center')
+library(tidyverse)
+library(skimr)
+```
+
+## Abstract
+We investigate whether audiences are more or less favorable to R-rated films than PG or PG-13 films, using fan ratings from the Internet Movie Database website. We also explore the relationship between a films runtime and its fan rating. A total of 230 films, all released in 2017, were considered. We found that longer movies obtain higher fan ratings, on average. We also found that audiences prefer long PG-rated films over long R-rated films, but that R-rated films are preferred when moves are 90 minutes or shorter. Film studios might consider this information when deciding the appropriate MPAA rating and duration of a film, though they will likely be interested in considering film revenue, in addition to fan ratings. 
+
+\newpage
+
+## Background and Significance
+
+Do audiences prefer long movies or shorter ones? Do film studios benefit by producing violent, raunchy films that appeal to their audiences, or is it better to scale back the sex and violence in order to obtain a PG-13 rating? These are some of the questions that writers, directors, producers, and studios must consider as they create and market their films. In this study, we examine whether fan ratings of movies, obtained from the popular Internet Movie Database website (2019), differ between R-rated and P or PG-13 rated films. We also explore whether there is evidence of a relationship between a film's runtime and its average IMDB fan rating. 
+
+Prior research about the effect of an R-rating on a film's financial success has yielded mixed results. De Vany and Wells (2002) argue that although Hollwood produces more R-rated films than any other, studios would increase their potential earnings and reduce risk by creating more movies with G, PG, and PG-13 ratings instead. Simonoff and Sparrow (2000) also found that an R rating was associated with lower expected revenue. However, Ravid and Basuroy (2004) found that very violent films achieve strong openings and are less risky than other kinds of films. Walanaraya et a. (2018) used regression and other more advanced techniques to identify factors that are predictive of film revenue. 
+
+In this paper we investigate the relationship between a film's run time, and its rating given users of IMDB.com. We also investigate whether there are differences in user's preferences between PG, PG-13, and R-rated films.  
+
+
+## Data
+
+```{r, echo=FALSE}
+Heartanalysis <- read.csv("/Users/nafisahmedmunim/Desktop/STAT255/heart.csv")
+Heartanalysis
+# The data has been taekn from Kaggle.com and the source of the data is https://archive.ics.uci.edu/ml/datasets/Heart+Disease 
+# The link of the data is given here : https://www.kaggle.com/nareshbhat/health-care-data-set-on-heart-attack-possibility
+```
+
+Using IMDB.com, we obtained data on movies released in 2017, whose U.S. box office gross earnings exceeded $100,000. We considered the quantitative variables IMDB score, representing the average fan rating (ranging from 1 to 10), and run time in minutes. We also considered the categorical variable MPAA rating. There were only two G-rated films in the dataset, so we did not consider these in our analysis. We also did not consider the 67 unrated movies. This left 230 films with ratings of PG, PG-13, or R.   The table below displays the mean and standard deviation in IMDB scores and run times for films of each MPAA rating. 
+
+```{r}
+# use only sex, trtbps( resting blood Pressure ) , thalach( peak Heart rate achieved)
+Heartanalysis <-  Heartanalysis %>% select(sex, trtbps, thalachh)
+
+```
+```{r}
+###sex 0 Female and Sex 1 means Male so this is for changing the 1 to male and ) to female 
+Heartanalysis$sex[Heartanalysis$sex==0] <- "female"
+Heartanalysis$sex[Heartanalysis$sex==1] <- "male"
+```
+
+```{r}
+library(knitr)
+Table <- Heartanalysis %>% group_by(sex) %>% 
+  summarize(Mean_RestingbloodPressure=mean(trtbps), 
+            StDev_RestingbloodPressure=sd(trtbps), 
+            Mean_Peakheartrate = mean(thalachh), 
+            StDev_Peakheartrate = sd(thalachh)) 
+          
+kable(Table, caption = "Summary Statistics")
+```
+
+Figures 1 and 2 display density plots of IMDB scores, while Figure 3 shows a scatterplot of IMDB score against run time, with regression lines included for each MPAA rating. 
+
+```{r, fig.cap="Distribution of IMDB Scores"}
+ggplot(data=Heartanalysis, aes(x=thalachh, fill=sex, color=sex)) + 
+  geom_density(alpha=0.2) + xlab("Peak Heart Rate")+ ylab("Frequency") + ggtitle("Peak Heart Rate of the Data")
+```
+
+```{r, fig.cap="Distribution of Runtimes"}
+ggplot(data=Heartanalysis, aes(x=trtbps, fill=sex, color=sex)) + 
+  geom_density(alpha=0.2) + ggtitle("Run times for 2017 Films") + xlab("Run Time") + ylab("Frequency")
+```
+
+```{r, fig.cap="Relationship between Runtime and IMDB Score for each MPAA Rating"}
+ggplot(data=Heartanalysis, aes(y=thalachh, x=trtbps, color=sex)) + geom_point() + 
+ xlab("Run Time") + ylab("IMDB Score") + ggtitle("Relationship between Run Time, Rating, and IMDB Score") + stat_smooth(method="lm", se=FALSE)
+```
+
+We see that scores for PG-rated films tend to be slightly lower than for PG-13 and R-rated films, on average, however the difference is not very big. Most films have IMDB scores between 4 and 8, and run times usually range from 75 to 150 minutes. We see that on average, IMDB scores tend to increase as runtime increases. Figure 3 shows signs of an interaction between run time and rating on IMDB score, as audiences tend to prefer R-rated films when the film is short, and PG-ratings for longer films. 
+
+
+## Model  
+
+We first fit a model relating IMBB score, run time, and MPAA rating, without accounting for interaction between run time and MPAA rating. Table 2 gives the model coefficients. 
+
+```{r}
+M12 <- lm(data=Heartanalysis, thalachh ~ trtbps + sex)
+summary(M12)
+
+kable(summary(M1)$coefficients, caption="Table of Model Coefficients")
+```
+
+The estimated regression equation is 
+\[
+\widehat{\text{IMDB Score}} = 3.78 + 0.025\times \text{Run Time} - 0.23 \times \text{I}_{PG-13} - 0.01\times\text{I}_{R}. 
+\]
+
+It does not make sense to interpret the intercept, since this would represent the expected IMDB score for a film with runtime 0 minutes. We estimate that a film's IMDB score is expected to increase by about 0.025 points for each additional minute in runtime, assuming MPAA rating is held constant. According to this model, a PG-13 rated movie is expected to score 0.23 points lower than a PG rated movie, assuming runtime is held constant, and an R-rated movie is expected to score 0.02 points lower than a PG-rating movie, assuming run time is held constant. 
+
+The value of $R^2$ was 0.163. This indicates that approximately 16% of the variability in IMDB ratings of films is explained by the model including MPAA rating, and run time.
+
+Since Figure 3 suggests an interaction between rating and run time, we fit a model with an interaction term. Table 3 shows the model coefficients. 
+
+```{r}
+M13 <- lm(data=Heartanalysis, thalachh ~ trtbps * sex)
+summary(M13)
+
+kable(summary(M1)$coefficients, caption="Table of Model Coefficients")
+```
+
+The estimated regression equation is 
+\[
+\widehat{\text{IMDB Score}} = 1.58 + 0.047\times \text{Run Time} + 2.440 \times \text{I}_{PG-13} + 2.210\times\text{I}_{R} -0.026\times \text{Run Time} \times \text{I}_{PG-13}-0.022\times \text{Run Time} \times \text{I}_{R}. 
+\]
+
+For PG films, this simplifies to $\widehat{\text{IMDB Score}} = 1.58 + 0.047\times \text{Run Time}$.  
+
+For PG-13 films, it becomes $\widehat{\text{IMDB Score}} = 4.02 + 0.0206\times \text{Run Time}$. 
+
+For R-rated films, it becomes $\widehat{\text{IMDB Score}} = 3.79 + 0.0246\times \text{Run Time}$.  
+
+Thus, we estimate that IMDB ratings of PG films increase by about 0.05 points, on average, for each additional minute in run time, compared to an estimated average increase of 0.02 points per minute of runtime for PG-13 films and 0.025 points per minute for R-rated films. 
+
+Once again, we refrain from interpreting the intercepts of these equations, since these would theoretically pertain to films of length zero, which don't make sense in practice. 
+
+The value of $R^2$ was 0.1737. This indicates that approximately 17% of the variability in IMDB ratings of films is explained by the model including MPAA rating, run time, and their interaction. 
+
+Although we observe only a small increase in $R^2$, when the interaction terms are added, we will use the model with interaction. Intuitively, it makes sense that a film's MPAA rating might impact how the audience responds to its length, with audiences perhaps being more accepting of longer PG or PG-13 rated films than R-rated films. Therefore, we will use the model with interactions in our analysis. 
+
+
+## Inference
+
+In this section, we use this sample of 230 films from 2017 to draw broader conclusions about all Hollywood films. First, we calculate a confidence interval for the expected increase in IMDB score for each additional minute in run time for PG films. Then, we compare the expected IMDB score for a 2-hour PG-rated movie to that of a 2-hour R-rated movie. 
+
+The general form of the regression equation is
+
+\[
+\widehat{\text{IMDB Score}} = b_0 + b_1\times \text{Run Time} + b_2 \times \text{I}_{PG-13} + b_3\times\text{I}_{R} - b_4\times \text{Run Time} \times \text{I}_{PG-13}-b_5\times \text{Run Time} \times \text{I}_{R}. 
+\]
+
+The expected change in IMDB score for PG-rated movies is given by $b_1$. We use bootstrapping to find a 95% confidence interval for this quantity, as it pertains to all films. Figure 4 displays the bootstrap distribution and a 95% bootstrap percentile confidence interval. We are 95% confident that IMDB scores for PG-rated movies increase between 0.02 and 0.08 points, on average, for each additional minute in run time.    
+
+```{r}
+b0 <- rep(NA, 10000)
+b1 <- rep(NA, 10000)
+b2 <- rep(NA, 10000)
+b3 <- rep(NA, 10000)
+
+
+for (i in 1:10000){
+BootstrapSample <- sample_n(Heartanalysis, 303, replace=TRUE) 
+M <- lm(data=BootstrapSample, thalachh~trtbps* sex)
+b0[i] <- M$coefficients[1]
+b1[i] <- M$coefficients[2]
+b2[i] <- M$coefficients[3]
+b3[i] <- M$coefficients[4]
+
+}
+
+RatingDifference <-  b2 + b3
+Heart_Bootstrap_Results <- data.frame(b0, b1, b2, b3,  RatingDifference)
+```
+
+
+
+
+
+```{r}
+q.025 <- quantile(Movies_Bootstrap_Results$b1, .025)
+q.975 <- quantile(Movies_Bootstrap_Results$b1, .975)
+q.025 
+q.975
+```
+
+```{r, fig.cap="Bootstrap Distribution for Increase in Peak Heart rate for Per Unit increase of Resting Blood Pressure For only females }
+ggplot(data=Heart_Bootstrap_Results, aes(x=b1)) +  
+  geom_histogram(color="white", fill="lightblue") +
+  xlab("Per Unit Increase") + ylab("Frequency") +  ggtitle("Bootstrap Distribution for Slope") + 
+  theme(legend.position = "none") + geom_vline(xintercept=c(q.025, q.975), color="red")
+```
+
+Next, we compare expected IMDB scores for PG-rated and R-rated movies that are two hours long. The expected IMDB score for a 120 minute PG-rated movie is given by $b_0 120b_1$. The expected score for movie with a rating of R is  $b_0 + b_3 + 120(b_1 + b_5)$. The difference in these expected scores is $b_3 + 120b_5$. Figure 5 gives a 95% bootstrap percentile confidence interval for this expected difference. 
+
+
+```{r}
+q.025 <- quantile(Movies_Bootstrap_Results$RatingDifference, .025)
+q.975 <- quantile(Movies_Bootstrap_Results$RatingDifference, .975)
+```
+
+
+
+
+```{r, fig.cap="Bootstrap Distribution for Expected Difference in Peak Heart Rate between male and female who has the same Cholesterol"}
+ggplot(data=Heart_Bootstrap_Results, aes(x=RatingDifference)) +  
+  geom_histogram(color="white", fill="lightblue") +
+  xlab("Expected Difference (R-PG)") + ylab("Frequency") + ggtitle("Bootstrap Distribution for Expected Difference") +
+  theme(legend.position = "none") + geom_vline(xintercept=c(q.025, q.975), color="red")
+```
+
+We are 95% confident that the average IMDB score among all 2-hour R-rated films is between 1.31 points lower and 0.1 points higher than the average IMDB score among all 2-hour PG-rated films.    
+
+## Discussion and Conclusions
+
+We have found evidence that for possible relation between the Peak Heart rate and the Cholesterol level in a human being. The regression lines relating peak heart rate and cholesterol had positive slope for female but negative slopes for males. The estimated decrease for male in peak heart rate was found 2.35. A confidence interval 
+shows that the difference between heart rate in male and female  can go to as low as to -7.74574 and as up as 3.314793 Unit for those who have 250 mg/dl cholesterol Level. The fact that zero lies in the confindence interval questions about the plausible relation between the sex and peak heart rate. 
+There are signs of an interaction between cholesterol level and Peak Heart level as in the regression lines it shows that the peak heart rate for females are increasing and the peak heart rate for males are decreasing as the cholesterol level goes up. 
+
+We found that the difference in the Peak heart rate between females and males is possibly as low as -7.74574 to 3.314793 as high as . We can also see that 0 lies within our interval which shows that it is possible that there might not be such relation in Peak heart rate with sex. This range makes it difficult to conclusively say that the peak heart rate whether increases or decreases for males and females who have the same cholesterol level.
+
+The fact that our model only explained 4.3% of the variability in the peak heart rate is not surprising because there are a lot of variable or stuffs which effect the heart rate of a person.The factors like body weight, age , habits, other health issues might be considered by health specialists to find the range of peak heart rate. Still this result suggests that Cholesterol level is predictive of Peak Heart rate.
+
+There are several limitations that we should be aware of. Our sample pertained to only 303 persons who were checked in a year. it is not clear that the observations taken in other area or year would be systematically different than our sample, but since we don't have a random sample of all the patients or people around the world from different regions and different time, it is possible that our results are not representing the whole population. Our study pertained only to Cholesterol levels while things like Peak Heart rate depends on a lot of other things like serum createnine, age , type of exercise the person does, type of chest pain the person have and other health conditions, which medical sectors will certainly consider when determining the peak heart rate. Although we found that Cholesterol levels have some effect in the Peak Heart rate whether increasing or decreasing the Peak heart rate in different genders. 
+ 
+Our study provides guidance to general people who have seen or observed high cholesterol level in their blood which might tend to show some cardio vascular disease in their body in future or they should be aware of their health condition according to their gender.Moreover, the interaction between age and Cholesterol and Heart rate can open doors to many future researches in the medical or pathology sector as Cardio-vascular diseases are a top concern in the health  sector of the world and our food habit is really related with the cholesterol level. 
+
+\newpage 
+
+## Bibliography
+
+Heart Rate Performance Curve Is Dependent on Age, Sex, and Performance.Philipp Birnbaumer,1 Heimo Traninger,2 Andrea Borenich,3 Markus Falgenhauer,4 Robert Modre-Osprian,4 Hanns Harpf,2 and Peter Hofmann1,* . Retrieved from https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7144539/
+
+Association of Triglyceride–to–HDL Cholesterol Ratio With Heart Rate Recovery. Mehdi H. Shishehbor, DO1, Byron J. Hoogwerf, MD2 and Michael S. Lauer, MD3. Retrieved from https://care.diabetesjournals.org/content/27/4/936.short
+
+The relationship between cholesterol and survival in patients with chronic heart failure. J Am Coll Cardiol. 2003 Dec, 42 (11) 1933–1940. Journal of the American College of Cardiology. 
+
+Heart.csv . Retrieved from https://archive.ics.uci.edu/ml/datasets/Heart+Disease or https://www.kaggle.com/nareshbhat/health-care-data-set-on-heart-attack-possibility
+
+\newpage
+
+## Appendix
+
+Optional. Add anything you would like that does not fit in report.
